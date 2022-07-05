@@ -1,0 +1,85 @@
+---
+title: "PTA"
+author: "Maximiliano Ros"
+date: "1/2/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+library(tidyverse)
+library(ggplot2)
+library(ggtext)
+library(formattable)
+library(ggalt)
+library(forcats)
+```
+
+```{r}
+PTA<- read_excel("PTA.xlsx",sheet = 1)
+nominaciones<- read_excel("PTA.xlsx",sheet = 2)
+actores<-  read_excel("PTA.xlsx",sheet = 3) 
+argentina<- read_excel("PTA.xlsx", sheet = 4)
+puntajes<- read_excel("PTA.xlsx", sheet = 5)
+```
+
+
+
+```{r}
+PTA$title<- factor(PTA$title, levels=PTA$title)
+guion.original<- PTA %>%  group_by(guion.orginal) %>% summarise(porcentaje=percent(sum(cantidad)/sum(PTA$cantidad)))
+```
+
+El 100% de sus películas son escritas por él. Dentro de ellas 2/3 corresponden a guiones originales que expanden el alcance de cine, que hacen crecer al séptimo arte. Son personajes, problemas, alivios, dramas, risas que no existían. El tercio restante corresponden a adaptaciones de obras poco conocidas.
+
+```{r}
+reca<- PTA %>% filter(year<2021)%>% summarise(title, reca.bud=percent((box.office-budget)/budget)) %>% 
+               mutate(perdida= case_when(reca.bud<0 ~ "PERDIDA",
+                                         TRUE ~ "GANANCIA"))
+
+
+reca %>% ggplot(aes(title, reca.bud, fill=perdida))+
+         geom_bar(stat='identity')
+```
+
+```{r}
+PTA %>% filter(year<2021)%>% ggplot(aes(title, `cantidad de semanas`))+geom_bar(stat='identity')+
+        geom_line(aes(title, mejor.semana), group=1)
+        
+```
+
+Algo interesante que ocurre con este director es que sus películas no dependen tanto del marketing como sí del famoso "boca en boca", debido a eso las semanas con mayor con cantidad de ventas no suelen ser las primeras. De hecho, en promedio, la cuarta semana es la mejor. 
+
+No solmanente eso, los mejores findes de semana las películas recaudan una gran parte de sus ingresos por box office. 
+
+#AGREGAR DOMESTICO
+```{r}
+recaudacion<- PTA %>% summarise(year, title,best.wkd.s.box.office= percent(best.weekend.dom/box.office))
+```
+
+```{r}
+actores2<- actores %>% mutate(cantidad=1) %>% group_by(names) %>% summarise(cantidad.pelis=sum(cantidad)) %>% filter(cantidad.pelis>1) %>% arrange(desc(cantidad.pelis))
+```
+
+Son 156 los personajes utilizados por PTA, no existe uno repetido. Pero los actores que elige si suelen estar presentes en varias peliculas.
+
+
+```{r}
+puntajes<- read_excel("PTA.xlsx", sheet = 5)
+
+puntajes<-puntajes %>% mutate(title= fct_reorder(title, desc(tomatometer)))
+
+
+
+puntajes %>% ggplot()+
+             geom_dumbbell(aes(y=title, x=tomatometer, xend=audiencia),size=3, color="#e3e2e1",
+             colour_x = "#fa320a", colour_xend = "#f9d320")+
+             scale_x_continuous(labels = percent_format(),limits=c(0.5,1),breaks = seq(0.50,1,0.1))+
+             labs(x="", title="<span style='color: #FA8806;'>**Paul Thomas Anderson**</span>", subtitle = "Puntaje de sus películas según <span style='color:#fa320a;'>**tomatometer**</span> o <span style='color:#f9d320;'>**audiencia**</span>", caption = "<span style='color:#4F4F4F;'> **Fuente: Maximiliano Ros en base a datos de Rotten Tomatoes**.</span>")+
+             theme(plot.title.position = "plot",plot.title = element_markdown(family="BRLNSR", size=26),plot.subtitle = element_markdown(family="BRLNSR", size=16), panel.background = element_blank(),axis.ticks = element_blank(),plot.caption = element_markdown(size=8,hjust=0,family = "BRLNSR" ), text = element_text(family = ""),panel.grid.major = element_blank(),legend.position = "none",legend.box.background =  element_blank(), axis.title.x = element_blank(), axis.title.y = element_blank(), axis.text = element_markdown(size=9.5,family = "BRLNSR", colour = "BLACK"), axis.ticks.x = element_line())
+```
+
